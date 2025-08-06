@@ -207,6 +207,50 @@ pub fn build(b: *std.Build) void {
         // Make the main "translate-tests" step depend on this file's installation.
         translate_tests_step.dependOn(&install_file.step);
     }
+
+    // ======================================================================
+    // Optional Developer Step: Translate all C demo files to Zig
+    //
+    // This step is NOT run by default.
+    // To execute, run: `zig build translate-demos`
+    // ======================================================================
+    const translate_demos_step = b.step("translate-demos", "Translate all ODPI-C demo files to Zig");
+
+    const demo_c_files = [_][]const u8{
+        "DemoBLOB.c",                  "DemoCLOB.c",              "DemoFetch.c",            "DemoInsert.c",         "DemoInsertAsArray.c",
+        "DemoCallProc.c",              "DemoRefCursors.c",        "DemoImplicitResults.c",  "DemoFetchObjects.c",   "DemoBindObjects.c",
+        "DemoFetchDates.c",            "DemoBindArrays.c",        "DemoBFILE.c",            "DemoAppContext.c",     "DemoDistribTrans.c",
+        "DemoObjectAQ.c",              "DemoRawAQ.c",             "DemoBulkAQ.c",           "DemoCQN.c",            "DemoLongs.c",
+        "DemoLongRaws.c",              "DemoDMLReturning.c",      "DemoInOutTempLobs.c",    "DemoConvertNumbers.c", "DemoCreateSodaColl.c",
+        "DemoIterSodaColls.c",         "DemoDropSodaColl.c",      "DemoInsertSodaColl.c",   "DemoGetSodaDoc.c",     "DemoRemoveSodaDoc.c",
+        "DemoReplaceSodaDoc.c",        "DemoGetAllSodaDocs.c",    "DemoGetSodaCollNames.c", "DemoCLOBsAsStrings.c", "DemoBLOBsAsBytes.c",
+        "DemoInsertManySodaColl.c",    "DemoShardingNumberKey.c", "DemoFetchJSON.c",        "DemoBindJSON.c",       "DemoTokenStandalone.c",
+        "DemoTokenPoolWithCallback.c",
+    };
+
+    // Loop through each C demo file and create a translation job for it.
+    inline for (demo_c_files) |c_filename| {
+        const translate = b.addTranslateC(.{
+            // Point to the file in the `samples` directory of the submodule.
+            .root_source_file = b.path("libs/odpi/samples/" ++ c_filename),
+            .target = target,
+            .optimize = optimize,
+        });
+
+        // The demo files only need the main include directory to find "dpi.h".
+        translate.addIncludePath(b.path("libs/odpi/include"));
+
+        if (is_windows) {
+            translate.defineCMacro("DPI_EXPORTS", null);
+        }
+
+        const stem = std.fs.path.stem(c_filename);
+        const zig_filepath = std.fmt.allocPrint(b.allocator, "demos/{s}.zig", .{stem}) catch @panic("Failed to allocate memory for filename");
+        const install_file = b.addInstallFile(translate.getOutput(), zig_filepath);
+
+        // Make the main "translate-demos" step depend on this file's installation.
+        translate_demos_step.dependOn(&install_file.step);
+    }
 }
 
 // Helper function to parse the version numbers from the dpi.h header file.

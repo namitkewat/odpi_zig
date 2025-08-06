@@ -150,7 +150,56 @@ To fix this for your local translation, you must temporarily patch the file:
 
 3.  Save the file and run `zig build translate-tests` again. The process should now complete successfully.
 
-    **Note:** Since you are modifying a file within a Git submodule, this change is temporary and may be overwritten if you update or clean the submodule. This process is intended for local experimentation and analysis.
+### 📖 Translating C Demos to Zig
+
+Similar to the test suite, you can also translate the C demo applications provided by ODPI-C into Zig code. This is an excellent way to see practical examples of the library's usage translated into Zig.
+
+**Command:**
+```bash
+zig build translate-demos
+```
+
+This will generate `.zig` files for each C demo and place them in the `zig-out/demos/` directory.
+
+#### Handling Translation Errors
+
+The C demo files are generally self-contained but may have their own portability issues.
+
+##### Error: Undeclared function 'chdir'
+You may encounter this error when translating `DemoBFILE.c`. The `chdir()` function, used to change the current directory, requires a specific header.
+
+1.  Open the source file from the submodule: `libs/odpi/samples/DemoBFILE.c`.
+
+2.  Add the following code block to the top of the file to provide the correct header and a compatibility mapping for Windows:
+    ```
+    #if defined(_WIN32)
+        #include <direct.h>
+        #define chdir _chdir
+    #else
+        #include <unistd.h>
+    #endif
+    ```
+
+3.  Save the file and run `zig build translate-demos` again.
+
+### 🩹 Applying C Source Patches (for Translation)
+
+The ODPI-C C source code contains minor, non-portable patterns that can cause the strict `zig translate-c` commands (used by `zig build translate-tests` and `zig build translate-demos`) to fail. To make the translation process smoother, a Python helper script is provided to automatically apply the necessary fixes.
+
+**Command:**
+```bash
+python apply_patch.py
+```
+
+**What It Does:**
+This command will perform the following modifications:
+-   **Fixes `sleep` function:** Prepends a cross-platform header include and definition for `sleep()` to `libs/odpi/test/test_4500_sessionless_txn.c`.
+-   **Fixes `chdir` function:** Prepends a cross-platform header include and definition for `chdir()` to `libs/odpi/samples/DemoBFILE.c`.
+
+The command is idempotent, meaning it is safe to run multiple times; it will not apply a patch if it already exists.
+
+
+**Note:** Since you are modifying a file within a Git submodule, this change is temporary and may be overwritten if you update or clean the submodule. This process is intended for local experimentation and analysis.
 
 ## 📁 File Descriptions
 
