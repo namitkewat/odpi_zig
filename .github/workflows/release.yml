@@ -37,17 +37,23 @@ jobs:
       - name: Get ODPI Version
         id: get_odpi_version
         run: |
-          ODPI_VERSION=$(zig build | grep "Building odpi" | awk '{print $3}' | sed 's/v//')
+          # First, run the build step to create the version file.
+          zig build print-odpi-version
+          
+          # Now, read the version from the generated file.
+          ODPI_VERSION_WITH_V=$(cat zig-out/bin/odpi_version.txt)
+          ODPI_VERSION=$(echo $ODPI_VERSION_WITH_V | sed 's/v//')
+          
           echo "ODPI version found: $ODPI_VERSION"
           echo "version=$ODPI_VERSION" >> $GITHUB_OUTPUT
 
       # Step 4: Build the release artifacts for multiple platforms.
       - name: Build release artifacts
         run: |
-          zig build -Doptimize=ReleaseSafe -Dtarget=x86_64-linux-gnu --prefix ./release/odpic-x86_64-linux
-          zig build -Doptimize=ReleaseSafe -Dtarget=x86_64-windows-msvc --prefix ./release/odpic-x86_64-windows
-          zig build -Doptimize=ReleaseSafe -Dtarget=x86_64-macos --prefix ./release/odpic-x86_64-macos
-          zig build -Doptimize=ReleaseSafe -Dtarget=aarch64-macos --prefix ./release/odpic-aarch64-macos
+          zig build -Doptimize=ReleaseSafe -Dtarget=x86_64-linux-gnu --prefix ./release/odpi-x86_64-linux
+          zig build -Doptimize=ReleaseSafe -Dtarget=x86_64-windows-msvc --prefix ./release/odpi-x86_64-windows
+          zig build -Doptimize=ReleaseSafe -Dtarget=x86_64-macos --prefix ./release/odpi-x86_64-macos
+          zig build -Doptimize=ReleaseSafe -Dtarget=aarch64-macos --prefix ./release/odpi-aarch64-macos
 
       # Step 5: Create compressed archives with detailed versioning.
       # The filename will include the release tag and the detected ODPI version.
@@ -56,8 +62,8 @@ jobs:
           cd release
           for dir in *; do
             if [ -d "$dir" ]; then
-              # Example filename: odpic-v0.1.0-odpi-v5.6.2-x86_64-linux.zip
-              zip -r "odpic-${{ github.ref_name }}-odpi-v${{ steps.get_odpi_version.outputs.version }}-${dir#odpic-}.zip" "$dir"
+              # Example filename: odpi_zig-v0.1.0-odpi-v5.6.2-x86_64-linux.zip
+              zip -r "odpi_zig-${{ github.ref_name }}-(with-odpi-v${{ steps.get_odpi_version.outputs.version }})-${dir#odpi-}.zip" "$dir"
             fi
           done
           cd ..

@@ -98,14 +98,28 @@ Zig's build system is highly flexible. Here are some common commands:
     zig build clean
     ```
 
-## 🧪 Bonus: Translating the C Test Suite to Zig
+## ✨ Optional Build Steps
 
-This project includes an optional build step to translate the original ODPI-C test suite from C into Zig code. This is a powerful tool for learning how C constructs map to Zig or as a starting point for creating a native Zig test suite.
+Beyond the default library compilation, the `build.zig` script includes additional steps for developers and automation. These steps are not run by default and must be invoked explicitly by name.
 
-This step does **not** run automatically with `zig build`.
+### 🤖 Exposing the ODPI-C Version for CI Automation
 
-**To run the translation, execute the following command:**
+This is a lightweight helper step designed primarily for automation, such as the GitHub Actions release workflow. It provides a fast, platform-independent way to get the version of the underlying ODPI-C library that the project is building against.
 
+**Command:**
+```bash
+zig build print-odpi-version
+```
+**Purpose & Mechanism:**
+Instead of printing to the console, this command creates a file at **`zig-out/bin/odpi_version.txt`**. The file will contain just the version string (e.g., `v5.6.2`).
+
+The GitHub Actions workflow runs this step, reads the content of the file, and uses the version string to name the final release artifacts (e.g., `odpi_zig-v0.1.0-(with-odpi-v5.6.2)-x86_64-linux.zip`), providing clear traceability for each build.
+
+### 🧪 Translating C Tests to Zig
+
+This step is a developer tool for translating the original ODPI-C C test suite into Zig code using `zig translate-c`. This is useful for learning how C constructs map to Zig or as a starting point for creating a native Zig test suite.
+
+**Command:**
 ```bash
 zig build translate-tests
 ```

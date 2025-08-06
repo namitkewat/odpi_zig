@@ -95,6 +95,39 @@ pub fn build(b: *std.Build) void {
     b.getInstallStep().dependOn(&install_header.step);
 
     // ======================================================================
+    // CI HELPER: EFFICIENT & PORTABLE ODPI-C VERSION OUTPUT
+    //
+    // This optional step provides a platform-independent way for automation
+    // (like GitHub Actions) to get the detected ODPI-C version.
+    // It avoids non-portable system commands like 'echo'.
+    //
+    // To run, use: `zig build print-odpi-version`
+    // This will create a file at: `zig-out/bin/odpi_version.txt`
+    // ======================================================================
+    const print_version_step = b.step("print-odpi-version", "Writes the detected ODPI-C version to a file");
+
+    // Format the version string we parsed earlier.
+    const version_string = b.fmt("v{d}.{d}.{d}", .{
+        versions.major,
+        versions.minor,
+        versions.patch,
+    });
+
+    // 1. Write the version string to a temporary file in the build cache.
+    const version_file_in_cache = b.addWriteFile(
+        "odpi_version.txt", // A temporary name for the file in the cache
+        version_string,
+    );
+
+    // // 2. Install that temporary file from the cache to the final output directory.
+    const install_version_file = b.addInstallFile(
+        version_file_in_cache.getDirectory().path(b, "odpi_version.txt"), // Source is the artifact from the previous step
+        "bin/odpi_version.txt", // Destination is zig-out/bin/odpi_version.txt
+    );
+
+    print_version_step.dependOn(&install_version_file.step);
+
+    // ======================================================================
     // Optional Developer Step: Translate all C test files to Zig
     //
     // This step is NOT run by default.
