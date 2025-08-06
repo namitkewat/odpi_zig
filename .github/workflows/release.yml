@@ -67,7 +67,7 @@ jobs:
           for dir in *; do
             if [ -d "$dir" ]; then
               # Example filename: odpi_zig-v0.1.0-odpi-v5.6.2-x86_64-linux.zip
-              zip -r "odpi_zig-${{ github.ref_name }}-(with-odpi-v${{ steps.get_odpi_version.outputs.version }})-${dir#odpic-}.zip" "$dir"
+              zip -r "odpi_zig-${{ github.ref_name }}-with-odpi-v${{ steps.get_odpi_version.outputs.version }}-${dir#odpic-}.zip" "$dir"
             fi
           done
           

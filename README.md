@@ -113,7 +113,7 @@ zig build print-odpi-version
 **Purpose & Mechanism:**
 Instead of printing to the console, this command creates a file at **`zig-out/bin/odpi_version.txt`**. The file will contain just the version string (e.g., `v5.6.2`).
 
-The GitHub Actions workflow runs this step, reads the content of the file, and uses the version string to name the final release artifacts (e.g., `odpi_zig-v0.1.0-(with-odpi-v5.6.2)-x86_64-linux.zip`), providing clear traceability for each build.
+The GitHub Actions workflow runs this step, reads the content of the file, and uses the version string to name the final release artifacts (e.g., `odpi_zig-v0.1.0-with-odpi-v5.6.2-x86_64-linux.zip`), providing clear traceability for each build.
 
 ### 🧪 Translating C Tests to Zig
 
