@@ -1,0 +1,77 @@
+# .github/workflows/release.yml
+
+# This name will appear in the "Actions" tab of your GitHub repository.
+name: Create Release
+
+# This workflow runs whenever a tag starting with 'v' (e.g., v0.1.0) is pushed.
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build_and_release:
+    # The job will run on the latest version of Ubuntu.
+    runs-on: ubuntu-latest
+
+    # Add permissions for the GITHUB_TOKEN to allow creating releases.
+    permissions:
+      contents: write
+
+    steps:
+      # Step 1: Check out the repository code, including the submodule.
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # This is crucial for checking out the git submodule (odpi).
+          submodules: 'recursive'
+
+      # Step 2: Set up Zig for reproducible builds.
+      - name: Set up Zig
+        uses: mlugg/setup-zig@v2
+        with:
+          version: '0.14.1' # Pinning the Zig version ensures consistency.
+
+      # Step 3: Get the ODPI version from the build script output.
+      # This runs `zig build`, finds the version line, and extracts the number.
+      - name: Get ODPI Version
+        id: get_odpi_version
+        run: |
+          ODPI_VERSION=$(zig build | grep "Building odpi" | awk '{print $3}' | sed 's/v//')
+          echo "ODPI version found: $ODPI_VERSION"
+          echo "version=$ODPI_VERSION" >> $GITHUB_OUTPUT
+
+      # Step 4: Build the release artifacts for multiple platforms.
+      - name: Build release artifacts
+        run: |
+          zig build -Doptimize=ReleaseSafe -Dtarget=x86_64-linux-gnu --prefix ./release/odpic-x86_64-linux
+          zig build -Doptimize=ReleaseSafe -Dtarget=x86_64-windows-msvc --prefix ./release/odpic-x86_64-windows
+          zig build -Doptimize=ReleaseSafe -Dtarget=x86_64-macos --prefix ./release/odpic-x86_64-macos
+          zig build -Doptimize=ReleaseSafe -Dtarget=aarch64-macos --prefix ./release/odpic-aarch64-macos
+
+      # Step 5: Create compressed archives with detailed versioning.
+      # The filename will include the release tag and the detected ODPI version.
+      - name: Create versioned archives
+        run: |
+          cd release
+          for dir in *; do
+            if [ -d "$dir" ]; then
+              # Example filename: odpic-v0.1.0-odpi-v5.6.2-x86_64-linux.zip
+              zip -r "odpic-${{ github.ref_name }}-odpi-v${{ steps.get_odpi_version.outputs.version }}-${dir#odpic-}.zip" "$dir"
+            fi
+          done
+          cd ..
+
+      # Step 6: Create the GitHub Release and upload all zipped artifacts.
+      - name: Create GitHub Release and Upload Assets
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: Release ${{ github.ref_name }}
+          body: "Automated release. This build of the ODPI-C Zig wrapper uses ODPI-C version **v${{ steps.get_odpi_version.outputs.version }}**."
+          draft: false
+          prerelease: false
+          # This glob pattern finds all .zip files in the release directory and uploads them.
+          files: release/*.zip
