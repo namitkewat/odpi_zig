@@ -1,0 +1,3 @@
+[submodule "libs/odpi"]
+	path = libs/odpi
+	url = https://github.com/oracle/odpi
