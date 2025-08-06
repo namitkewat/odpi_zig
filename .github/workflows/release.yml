@@ -50,10 +50,14 @@ jobs:
       # Step 4: Build the release artifacts for multiple platforms.
       - name: Build release artifacts
         run: |
-          zig build -Doptimize=ReleaseSafe -Dtarget=x86_64-linux-gnu --prefix ./release/odpi-x86_64-linux
-          zig build -Doptimize=ReleaseSafe -Dtarget=x86_64-windows-msvc --prefix ./release/odpi-x86_64-windows
-          zig build -Doptimize=ReleaseSafe -Dtarget=x86_64-macos --prefix ./release/odpi-x86_64-macos
-          zig build -Doptimize=ReleaseSafe -Dtarget=aarch64-macos --prefix ./release/odpi-aarch64-macos
+          # Build for Linux
+          zig build -Doptimize=ReleaseSafe -Dtarget=x86_64-linux-gnu --prefix ./release/odpic-x86_64-linux
+          # Build for Windows using the GNU toolchain, which is available on the Linux runner
+          zig build -Doptimize=ReleaseSafe -Dtarget=x86_64-windows-gnu --prefix ./release/odpic-x86_64-windows
+          # Build for macOS (Intel)
+          zig build -Doptimize=ReleaseSafe -Dtarget=x86_64-macos --prefix ./release/odpic-x86_64-macos
+          # Build for macOS (Apple Silicon)
+          zig build -Doptimize=ReleaseSafe -Dtarget=aarch64-macos --prefix ./release/odpic-aarch64-macos
 
       # Step 5: Create compressed archives with detailed versioning.
       # The filename will include the release tag and the detected ODPI version.
@@ -63,7 +67,7 @@ jobs:
           for dir in *; do
             if [ -d "$dir" ]; then
               # Example filename: odpi_zig-v0.1.0-odpi-v5.6.2-x86_64-linux.zip
-              zip -r "odpi_zig-${{ github.ref_name }}-(with-odpi-v${{ steps.get_odpi_version.outputs.version }})-${dir#odpi-}.zip" "$dir"
+              zip -r "odpi_zig-${{ github.ref_name }}-(with-odpi-v${{ steps.get_odpi_version.outputs.version }})-${dir#odpic-}.zip" "$dir"
             fi
           done
           cd ..
