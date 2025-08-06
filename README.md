@@ -98,6 +98,46 @@ Zig's build system is highly flexible. Here are some common commands:
     zig build clean
     ```
 
+## 🧪 Bonus: Translating the C Test Suite to Zig
+
+This project includes an optional build step to translate the original ODPI-C test suite from C into Zig code. This is a powerful tool for learning how C constructs map to Zig or as a starting point for creating a native Zig test suite.
+
+This step does **not** run automatically with `zig build`.
+
+**To run the translation, execute the following command:**
+
+```bash
+zig build translate-tests
+```
+
+This will generate `.zig` files for each C test and place them in the `zig-out/test/` directory.
+
+### Handling Translation Errors
+
+The `zig translate-c` process is strict and may fail on certain C patterns or non-portable code. This section lists known issues and their solutions.
+
+#### Error: Undeclared function 'sleep'
+
+You will likely encounter an error when the process tries to translate `test_4500_sessionless_txn.c` because the `sleep()` function is used without its declaring header file.
+
+To fix this for your local translation, you must temporarily patch the file:
+
+1.  Open the source file from the submodule: `libs/odpi/test/test_4500_sessionless_txn.c`.
+
+2.  Add the following code block to the top of the file, near the other `#include` statements:
+    ```
+    #ifdef _WIN32
+        #include <windows.h>
+        #define sleep(s) Sleep((s) * 1000)
+    #else
+        #include <unistd.h>
+    #endif
+    ```
+
+3.  Save the file and run `zig build translate-tests` again. The process should now complete successfully.
+
+    **Note:** Since you are modifying a file within a Git submodule, this change is temporary and may be overwritten if you update or clean the submodule. This process is intended for local experimentation and analysis.
+
 ## 📁 File Descriptions
 
 * `build.zig`: The core build script. It contains all the logic for compiling the C source files from the `libs/odpi` submodule, setting platform-specific flags, linking libraries, and installing the final artifacts. It dynamically parses the version from `libs/odpi/include/dpi.h` to ensure the compiled library is correctly versioned.
